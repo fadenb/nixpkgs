@@ -216,6 +216,8 @@ in {
     hdf5 = pkgs.hdf5-mpi;
   };
 
+  intelhex = callPackage ../development/python-modules/intelhex { };
+
   mpi4py = callPackage ../development/python-modules/mpi4py {
     mpi = pkgs.openmpi;
   };
@@ -1184,6 +1186,15 @@ in {
     };
   };
 
+  arelle = callPackage ../development/python-modules/arelle {
+    gui = true;
+  };
+
+  arelle-headless = callPackage ../development/python-modules/arelle {
+    gui = false;
+  };
+
+
   arrow = buildPythonPackage rec {
     name = "arrow-${version}";
     version = "0.7.0";
@@ -1500,12 +1511,12 @@ in {
   in buildPythonPackage rec {
     name = "${pname}-${version}";
     pname = "awscli";
-    version = "1.11.95";
+    version = "1.11.108";
     namePrefix = "";
 
     src = fetchPypi {
       inherit pname version;
-      sha256 = "1f99cg5x5kw1p1awny64adp07rvva57srdfrbi81yl2kpw33ybjc";
+      sha256 = "1wz76hkljc25zzfa2l5jv0mbr5vx6d9ixq4sq0p3zf3l45ql6mdf";
     };
 
     # No tests included
@@ -1970,6 +1981,9 @@ in {
     };
 
     buildInputs = with self; [ docutils six ];
+
+    # Tests fail due to nix file timestamp normalization.
+    doCheck = false;
 
     meta = {
       homepage = https://github.com/botocore/bcdoc;
@@ -2516,10 +2530,10 @@ in {
   defusedxml = buildPythonPackage rec {
     name = "${pname}-${version}";
     pname = "defusedxml";
-    version = "0.4.1";
+    version = "0.5.0";
     src = pkgs.fetchurl {
       url = "mirror://pypi/d/${pname}/${name}.tar.gz";
-      sha256 = "0y147zy3jqmk6ly7fbhqmzn1hf41xcb53f2vcc3m8x4ba5d1smfd";
+      sha256 = "1x54n0h8hl92vvwyymx883fbqpqjwn2mc8fb383bcg3z9zwz5mr4";
     };
   };
 
@@ -3039,11 +3053,11 @@ in {
   botocore = buildPythonPackage rec {
     name = "${pname}-${version}";
     pname = "botocore";
-    version = "1.5.58";
+    version = "1.5.71";
 
     src = fetchPypi {
       inherit pname version;
-      sha256 = "1kd9hngdqvpjm01amizsmsnc08h2a0dxiasdk0f4kg1pibpqdni5";
+      sha256 = "1fgg28halsy4g43wjpkbd6l0wqiwyzkd4zjrzbbyzw4dxbsf3xfm";
     };
 
     propagatedBuildInputs =
@@ -10945,6 +10959,7 @@ in {
     };
   };
 
+  flask-restplus = callPackage ../development/python-modules/flask-restplus/default.nix { };
   # Exactly 0.8.6 is required by flexget
   flask-restplus_0_8 = callPackage ../development/python-modules/flask-restplus/0.8.nix { };
 
@@ -11654,14 +11669,14 @@ in {
 
   glances = buildPythonPackage rec {
     name = "glances-${version}";
-    version = "2.9.1";
+    version = "2.10";
     disabled = isPyPy;
 
     src = pkgs.fetchFromGitHub {
       owner = "nicolargo";
       repo = "glances";
       rev = "v${version}";
-      sha256 = "13pnim8zxqbw5b1jkl1ggqn2rg5kfwhznw42ckizrhg73ngy9yyp";
+      sha256 = "0hxs9bplxvj6grq9dqinr4f5ip6ray6mrw54scrcaqal8f3c8ah2";
     };
 
     doCheck = false;
@@ -11807,6 +11822,7 @@ in {
     };
   };
 
+  grammalecte = callPackage ../development/python-modules/grammalecte { };
 
   greenlet = buildPythonPackage rec {
     name = "greenlet-${version}";
@@ -11914,26 +11930,7 @@ in {
 
   guessit = callPackage ../development/python-modules/guessit { };
 
-  rebulk = buildPythonPackage rec {
-    version = "0.8.2";
-    name = "rebulk-${version}";
-
-    src = pkgs.fetchurl {
-      url = "mirror://pypi/r/rebulk/${name}.tar.gz";
-      sha256 = "8c09901bda7b79a21d46faf489d67d017aa54d38bdabdb53f824068a6640401a";
-    };
-
-    # Some kind of trickery with imports that doesn't work.
-    doCheck = false;
-    buildInputs = with self; [ pytest pytestrunner ];
-    propagatedBuildInputs = with self; [ six regex ];
-
-    meta = {
-      homepage = "https://github.com/Toilal/rebulk/";
-      license = licenses.mit;
-      description = "Advanced string matching from simple patterns";
-    };
-  };
+  rebulk = callPackage ../development/python-modules/rebulk { };
 
   gunicorn = callPackage ../development/python-modules/gunicorn.nix { };
 
@@ -12929,24 +12926,7 @@ in {
 
   kitchen = callPackage ../development/python-modules/kitchen/default.nix { };
 
-  pylast = buildPythonPackage rec {
-    name = "pylast-${version}";
-    version = "0.5.11";
-
-    src = pkgs.fetchurl {
-      url = "mirror://pypi/p/pylast/${name}.tar.gz";
-      sha256 = "bf35820be35447d55564d36072d40b09ac8a7fd41a6f1a7a9d408f4d0eaefac4";
-    };
-
-    # error: invalid command 'test'
-    doCheck = false;
-
-    meta = {
-      homepage = http://code.google.com/p/pylast/;
-      description = "A python interface to last.fm (and compatibles)";
-      license = licenses.asl20;
-    };
-  };
+  pylast = callPackage ../development/python-modules/pylast/default.nix { };
 
   pylru = buildPythonPackage rec {
     name = "pylru-${version}";
@@ -14558,25 +14538,7 @@ in {
     };
   };
 
-  pygraphviz = buildPythonPackage rec {
-    name = "pygraphviz-${version}";
-    version = "1.4rc1";
-
-    src = pkgs.fetchurl {
-      url = "mirror://pypi/p/pygraphviz/${name}.tar.gz";
-      sha256 = "00ck696rddjnrwfnh1zw87b9xzqfm6sqjy6kqf6kmn1xwsi6f19a";
-    };
-
-    buildInputs = with self; [ doctest-ignore-unicode mock nose ];
-    propagatedBuildInputs = [ pkgs.graphviz pkgs.pkgconfig ];
-
-    meta = {
-      description = "Python interface to Graphviz graph drawing package";
-      homepage = https://github.com/pygraphviz/pygraphviz;
-      license = licenses.bsd3;
-      maintainers = with maintainers; [ matthiasbeyer ];
-    };
-  };
+  pygraphviz = callPackage ../development/python-modules/pygraphviz { };
 
   pympler = buildPythonPackage rec {
     pname = "Pympler";
@@ -17006,21 +16968,7 @@ in {
     '';
   };
 
-  oslo-config = buildPythonPackage rec {
-    name = "oslo.config-${version}";
-    version = "2.5.0";
-
-    src = pkgs.fetchurl {
-      url = "mirror://pypi/o/oslo.config/${name}.tar.gz";
-      sha256 = "043mavrzj7vjn7kh1dddci4sf67qwqnnn6cm0k1d19alks9hismz";
-    };
-
-    propagatedBuildInputs = with self; [ argparse pbr six netaddr stevedore ];
-    buildInputs = [ self.mock ];
-
-    # TODO: circular import on oslo-i18n
-    doCheck = false;
-  };
+  oslo-config = callPackage ../development/python-modules/oslo-config { };
 
   oslotest = buildPythonPackage rec {
     name = "oslotest-${version}";
@@ -17060,24 +17008,7 @@ in {
     '';
   };
 
-  keystoneauth1 = buildPythonPackage rec {
-    name = "keystoneauth1-${version}";
-    version = "1.1.0";
-    disabled = isPyPy; # a test fails
-
-    src = pkgs.fetchurl {
-      url = "mirror://pypi/k/keystoneauth1/${name}.tar.gz";
-      sha256 = "05fc6xsp5mal52ijvj84sf7mrw706ihadfdf5mnq9zxn7pfl4118";
-    };
-
-    buildInputs = with self; [ pbr testtools testresources testrepository mock
-                               pep8 fixtures mox3 requests-mock ];
-    propagatedBuildInputs = with self; [ argparse iso8601 requests six stevedore
-                                         webob oslo-config ];
-    patchPhase = ''
-      sed -i 's@python@${python.interpreter}@' .testr.conf
-    '';
-  };
+  keystoneauth1 = callPackage ../development/python-modules/keystoneauth1 {};
 
   requests-mock = buildPythonPackage rec {
     name = "requests-mock-${version}";
@@ -20365,11 +20296,17 @@ in {
 
   pyopenssl = buildPythonPackage rec {
     name = "pyopenssl-${version}";
-    version = "16.2.0";
+    version = "17.0.0";
 
     src = pkgs.fetchurl {
       url = "mirror://pypi/p/pyOpenSSL/pyOpenSSL-${version}.tar.gz";
-      sha256 = "0vji4yrfshs15xpczbhzhasnjrwcarsqg87n98ixnyafnyxs6ybp";
+      sha256 = "1pdg1gpmkzj8yasg6cmkhcivxcdp4c12nif88y4qvsxq5ffzxas8";
+    };
+
+    patches = pkgs.fetchpatch {
+      url = "https://github.com/pyca/pyopenssl/commit/"
+          + "a40898b5f1d472f9449a344f703fa7f90cddc21d.patch";
+      sha256 = "0bdfrhfvdfxhfknn46s4db23i3hww6ami2r1l5rfrri0pn8b8mh7";
     };
 
     preCheck = ''
@@ -23642,6 +23579,8 @@ in {
     };
   });
 
+  spotipy = callPackage ../development/python-modules/spotipy { };
+
   Pweave = buildPythonPackage (rec {
     name = "Pweave-0.25";
 
@@ -23669,8 +23608,6 @@ in {
   spyder = callPackage ../applications/science/spyder {
     rope = if isPy3k then null else self.rope;
   };
-
-
 
   sqlalchemy = callPackage ../development/python-modules/sqlalchemy { };
 
@@ -25015,6 +24952,8 @@ in {
       maintainers = with maintainers; [ pSub ];
     };
   };
+
+  uritools = callPackage ../development/python-modules/uritools { };
 
   traceback2 = buildPythonPackage rec {
     version = "1.4.0";

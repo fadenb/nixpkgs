@@ -292,13 +292,6 @@ with pkgs;
       inherit kernel rootModules allowMissing;
     };
 
-  kdeDerivation = makeOverridable (import ../build-support/kde/derivation.nix)
-    { inherit stdenv lib; };
-
-  kdeWrapper = callPackage ../build-support/kde/wrapper.nix {
-    inherit (gnome3) dconf;
-  };
-
   nixBufferBuilders = import ../build-support/emacs/buffer.nix { inherit (pkgs) lib writeText; inherit (emacsPackagesNg) inherit-local; };
 
   pathsFromGraph = ../build-support/kernel/paths-from-graph.pl;
@@ -1066,6 +1059,8 @@ with pkgs;
 
   playerctl = callPackage ../tools/audio/playerctl { };
 
+  ps_mem = callPackage ../tools/system/ps_mem { };
+
   socklog = callPackage ../tools/system/socklog { };
 
   staccato = callPackage ../tools/text/staccato { };
@@ -1202,8 +1197,6 @@ with pkgs;
   };
 
   bup = callPackage ../tools/backup/bup { };
-
-  burp_1_3 = callPackage ../tools/backup/burp/1.3.48.nix { };
 
   burp = callPackage ../tools/backup/burp { };
 
@@ -1542,6 +1535,8 @@ with pkgs;
 
   ddccontrol-db = callPackage ../data/misc/ddccontrol-db { };
 
+  ddcutil = callPackage ../tools/misc/ddcutil { };
+
   ddclient = callPackage ../tools/networking/ddclient { };
 
   dd_rescue = callPackage ../tools/system/dd_rescue { };
@@ -1733,7 +1728,7 @@ with pkgs;
   evemu = callPackage ../tools/system/evemu { };
 
   # The latest version used by elasticsearch, logstash, kibana and the the beats from elastic.
-  elk5Version = "5.4.0";
+  elk5Version = "5.4.2";
 
   elasticsearch = callPackage ../servers/search/elasticsearch { };
   elasticsearch2 = callPackage ../servers/search/elasticsearch/2.x.nix { };
@@ -2370,7 +2365,9 @@ with pkgs;
 
   heaptrack = libsForQt5.callPackage ../development/tools/profiling/heaptrack {};
 
-  heimdall = callPackage ../tools/misc/heimdall { };
+  heimdall = libsForQt5.callPackage ../tools/misc/heimdall { enableGUI = false; };
+
+  heimdall-gui = libsForQt5.callPackage ../tools/misc/heimdall { enableGUI = true; };
 
   hevea = callPackage ../tools/typesetting/hevea { };
 
@@ -2965,6 +2962,8 @@ with pkgs;
 
   lshw = callPackage ../tools/system/lshw { };
 
+  ltris = callPackage ../games/ltris { };
+
   lxc = callPackage ../os-specific/linux/lxc { };
   lxcfs = callPackage ../os-specific/linux/lxcfs { };
   lxd = callPackage ../tools/admin/lxd { };
@@ -2992,6 +2991,8 @@ with pkgs;
   mailcheck = callPackage ../applications/networking/mailreaders/mailcheck { };
 
   maildrop = callPackage ../tools/networking/maildrop { };
+
+  mailhog = callPackage ../servers/mail/mailhog {};
 
   mailnag = callPackage ../applications/networking/mailreaders/mailnag { };
 
@@ -4045,7 +4046,7 @@ with pkgs;
   };
 
   quazip_qt4 = libsForQt5.quazip.override {
-    qtbase = qt4; qmakeHook = qmake4Hook;
+    qtbase = qt4; qmake = qmake4Hook;
   };
 
   scrot = callPackage ../tools/graphics/scrot { };
@@ -4817,15 +4818,16 @@ with pkgs;
 
   x11_ssh_askpass = callPackage ../tools/networking/x11-ssh-askpass { };
 
-  xbursttools = assert stdenv ? glibc; callPackage ../tools/misc/xburst-tools {
+  xbursttools = assert stdenv ? glibc; callPackage ../tools/misc/xburst-tools rec {
     # It needs a cross compiler for mipsel to build the firmware it will
     # load into the Ben Nanonote
+    crossPrefix = "mipsel-unknown-linux";
     gccCross =
       let
         pkgsCross = nixpkgsFun {
           # Ben Nanonote system
           crossSystem = {
-            config = "mipsel-unknown-linux";
+            config = crossPrefix;
             bigEndian = true;
             arch = "mips";
             float = "soft";
@@ -4844,7 +4846,7 @@ with pkgs;
           };
         };
       in
-        pkgsCross.gccCrossStageStatic;
+        pkgsCross.buildPackages.gccCrossStageStatic;
   };
 
   xclip = callPackage ../tools/misc/xclip { };
@@ -5164,13 +5166,21 @@ with pkgs;
 
   gccApple = throw "gccApple is no longer supported";
 
+  # Can't just overrideCC, because then the stdenv-cross mkDerivation will be
+  # thrown away. TODO: find a better solution for this.
+  crossLibcStdenv = buildPackages.makeStdenvCross {
+    inherit (buildPackages.buildPackages) stdenv;
+    inherit buildPlatform hostPlatform targetPlatform;
+    cc = buildPackages.gccCrossStageStatic;
+  };
+
   gccCrossStageStatic = assert targetPlatform != buildPlatform; let
     libcCross1 =
-      if targetPlatform.libc == "msvcrt" then windows.mingw_w64_headers
+      if targetPlatform.libc == "msvcrt" then __targetPackages.windows.mingw_w64_headers
       else if targetPlatform.libc == "libSystem" then darwin.xcode
       else null;
-    in wrapGCCCross {
-      gcc = forcedNativePackages.gcc.cc.override {
+    in wrapCCCross {
+      cc = forcedNativePackages.gcc.cc.override {
         crossStageStatic = true;
         langCC = false;
         libcCross = libcCross1;
@@ -5180,19 +5190,17 @@ with pkgs;
       };
       libc = libcCross1;
       inherit (forcedNativePackages) binutils;
-      cross = targetPlatform;
   };
 
   # Only needed for mingw builds
-  gccCrossMingw2 = assert targetPlatform != buildPlatform; wrapGCCCross {
-    gcc = gccCrossStageStatic.gcc;
+  gccCrossMingw2 = assert targetPlatform != buildPlatform; wrapCCCross {
+    cc = gccCrossStageStatic.gcc;
     libc = windows.mingw_headers2;
     inherit (forcedNativePackages) binutils;
-    cross = targetPlatform;
   };
 
-  gccCrossStageFinal = assert targetPlatform != buildPlatform; wrapGCCCross {
-    gcc = forcedNativePackages.gcc.cc.override {
+  gccCrossStageFinal = assert targetPlatform != buildPlatform; wrapCCCross {
+    cc = forcedNativePackages.gcc.cc.override {
       crossStageStatic = false;
 
       # Why is this needed?
@@ -5200,7 +5208,6 @@ with pkgs;
     };
     libc = libcCross;
     inherit (forcedNativePackages) binutils;
-    cross = targetPlatform;
   };
 
   gcc45 = lowPrio (wrapCC (callPackage ../development/compilers/gcc/4.5 {
@@ -5428,7 +5435,7 @@ with pkgs;
 
   inherit (haskellPackages) ghc;
 
-  cabal-install = haskell.lib.disableSharedExecutables haskellPackages.cabal-install;
+  cabal-install = haskell.lib.justStaticExecutables haskellPackages.cabal-install;
 
   stack = haskell.lib.justStaticExecutables haskellPackages.stack;
   hlint = haskell.lib.justStaticExecutables haskellPackages.hlint;
@@ -5768,6 +5775,8 @@ with pkgs;
     inherit (darwin) apple_sdk;
   };
 
+  rustRegistry = callPackage ./rust-packages.nix { };
+
   rust = rustStable;
   rustStable = callPackage ../development/compilers/rust {
     inherit (llvmPackages_4) llvm;
@@ -5786,7 +5795,6 @@ with pkgs;
   rustNightlyBin = lowPrio (callPackage ../development/compilers/rust/nightlyBin.nix {
      buildRustPackage = callPackage ../build-support/rust {
        rust = rustNightlyBin;
-       rustRegistry = callPackage ./rust-packages.nix { };
      };
   });
 
@@ -5802,8 +5810,6 @@ with pkgs;
       callPackage = newScope self;
     in {
       inherit rust;
-
-      rustRegistry = callPackage ./rust-packages.nix { };
 
       buildRustPackage = callPackage ../build-support/rust {
         inherit rust;
@@ -5925,14 +5931,19 @@ with pkgs;
     libc = glibc;
   };
 
-  wrapGCCCross =
-    {gcc, libc, binutils, cross, shell ? "", name ? "gcc-cross-wrapper"}:
+  wrapCCCross =
+    {cc, libc, binutils, shell ? "", name ? "gcc-cross-wrapper"}:
 
-    forcedNativePackages.callPackage ../build-support/gcc-cross-wrapper {
+    forcedNativePackages.ccWrapperFun {
       nativeTools = false;
       nativeLibc = false;
       noLibc = (libc == null);
-      inherit gcc binutils libc shell name cross;
+
+      dyld = if stdenv.isDarwin then darwin.dyld else null;
+      isGNU = cc.isGNU or false;
+      isClang = cc.isClang or false;
+
+      inherit cc binutils libc shell name;
     };
 
   # prolog
@@ -5985,9 +5996,10 @@ with pkgs;
     erlang_basho_R16B02 erlang_basho_R16B02_odbc
     erlangR17 erlangR17_odbc erlangR17_javac erlangR17_odbc_javac
     erlangR18 erlangR18_odbc erlangR18_javac erlangR18_odbc_javac
-    erlangR19 erlangR19_odbc erlangR19_javac erlangR19_odbc_javac;
+    erlangR19 erlangR19_odbc erlangR19_javac erlangR19_odbc_javac
+    erlangR20;
 
-  inherit (beam.packages)
+  inherit (beam.packages.erlang)
     rebar rebar3-open rebar3
     hexRegistrySnapshot fetchHex beamPackages
     hex2nix cuter relxExe;
@@ -6411,6 +6423,9 @@ with pkgs;
   antlr3_5 = callPackage ../development/tools/parsing/antlr/3.5.nix { };
   antlr3 = antlr3_5;
 
+  antlr4_7 = callPackage ../development/tools/parsing/antlr/4.7.nix { };
+  antlr4 = antlr4_7;
+
   ant = apacheAnt;
 
   apacheAnt = callPackage ../development/tools/build-managers/apache-ant { };
@@ -6620,7 +6635,7 @@ with pkgs;
   creduce = callPackage ../development/tools/misc/creduce {
     inherit (perlPackages) perl
       ExporterLite FileWhich GetoptTabular RegexpCommon TermReadKey;
-    inherit (llvmPackages_39) llvm clang-unwrapped;
+    inherit (llvmPackages_4) llvm clang-unwrapped;
     utillinux = if stdenv.isLinux then utillinuxMinimal else null;
   };
 
@@ -6787,6 +6802,7 @@ with pkgs;
   gradle = self.gradleGen.gradle_latest;
   gradle_2_14 = self.gradleGen.gradle_2_14;
   gradle_2_5 = self.gradleGen.gradle_2_5;
+  gradle_3_5 = self.gradleGen.gradle_3_5;
 
   gperf = callPackage ../development/tools/misc/gperf { };
   # 3.1 changed some parameters from int to size_t, leading to mismatches.
@@ -6911,6 +6927,8 @@ with pkgs;
       ];
     };
   };
+
+  nailgun = callPackage ../development/tools/nailgun { };
 
   nant = callPackage ../development/tools/build-managers/nant { };
 
@@ -7062,6 +7080,7 @@ with pkgs;
   scons = callPackage ../development/tools/build-managers/scons { };
 
   sbt = callPackage ../development/tools/build-managers/sbt { };
+  sbt-with-scala-native = callPackage ../development/tools/build-managers/sbt/scala-native.nix { };
   simpleBuildTool = sbt;
 
   shards = callPackage ../development/tools/build-managers/shards { };
@@ -7797,13 +7816,7 @@ with pkgs;
   # Being redundant to avoid cycles on boot. TODO: find a better way
   glibcCross = callPackage ../development/libraries/glibc {
     installLocales = config.glibc.locales or false;
-    # Can't just overrideCC, because then the stdenv-cross mkDerivation will be
-    # thrown away. TODO: find a better solution for this.
-    stdenv = buildPackages.makeStdenvCross
-      buildPackages.buildPackages.stdenv
-      buildPackages.targetPlatform
-      buildPackages.binutils
-      buildPackages.gccCrossStageStatic;
+    stdenv = crossLibcStdenv;
   };
 
   # We can choose:
@@ -7812,7 +7825,7 @@ with pkgs;
     # hack fixes the hack, *sigh*.
     /**/ if name == "glibc" then __targetPackages.glibcCross or glibcCross
     else if name == "uclibc" then uclibcCross
-    else if name == "msvcrt" then windows.mingw_w64
+    else if name == "msvcrt" then __targetPackages.windows.mingw_w64 or windows.mingw_w64
     else if name == "libSystem" then darwin.xcode
     else throw "Unknown libc";
 
@@ -7840,7 +7853,11 @@ with pkgs;
 
   glpk = callPackage ../development/libraries/glpk { };
 
-  inherit (ocamlPackages) glsurf;
+  glsurf = callPackage ../applications/science/math/glsurf {
+    libpng = libpng12;
+    giflib = giflib_4_1;
+    ocamlPackages = ocaml-ng.ocamlPackages_4_01_0;
+  };
 
   glui = callPackage ../development/libraries/glui {};
 
@@ -8227,7 +8244,7 @@ with pkgs;
       mkFrameworks = import ../development/libraries/kde-frameworks;
       attrs = {
         inherit libsForQt5;
-        inherit kdeDerivation lib fetchurl;
+        inherit lib fetchurl;
       };
     in
       recurseIntoAttrs (makeOverridable mkFrameworks attrs);
@@ -9574,6 +9591,8 @@ with pkgs;
 
   pgroonga = callPackage ../servers/sql/postgresql/pgroonga {};
 
+  plv8 = callPackage ../servers/sql/postgresql/plv8 {};
+
   phonon = callPackage ../development/libraries/phonon {};
 
   phonon-backend-gstreamer = callPackage ../development/libraries/phonon/backends/gstreamer.nix {};
@@ -9721,8 +9740,8 @@ with pkgs;
 
   libsForQt56 = recurseIntoAttrs (lib.makeScope qt56.newScope mkLibsForQt5);
 
-  qt58 = recurseIntoAttrs (makeOverridable
-    (import ../development/libraries/qt-5/5.8) {
+  qt59 = recurseIntoAttrs (makeOverridable
+    (import ../development/libraries/qt-5/5.9) {
       inherit newScope;
       inherit stdenv fetchurl makeSetupHook makeWrapper;
       bison = bison2; # error: too few arguments to function 'int yylex(...
@@ -9734,10 +9753,10 @@ with pkgs;
       inherit (gnome3) gtk3 dconf;
     });
 
-  libsForQt58 = recurseIntoAttrs (lib.makeScope qt58.newScope mkLibsForQt5);
+  libsForQt59 = recurseIntoAttrs (lib.makeScope qt59.newScope mkLibsForQt5);
 
-  qt5 = qt58;
-  libsForQt5 = libsForQt58;
+  qt5 = qt59;
+  libsForQt5 = libsForQt59;
 
   qt5ct = libsForQt5.callPackage ../tools/misc/qt5ct { };
 
@@ -9755,7 +9774,7 @@ with pkgs;
       knotifyconfig kpackage kparts kpeople kplotting kpty kross krunner
       kservice ktexteditor ktextwidgets kunitconversion kwallet kwayland
       kwidgetsaddons kwindowsystem kxmlgui kxmlrpcclient modemmanager-qt
-      networkmanager-qt plasma-framework solid sonnet syntax-highlighting
+      networkmanager-qt plasma-framework prison solid sonnet syntax-highlighting
       threadweaver;
 
     ### KDE PLASMA 5
@@ -9773,6 +9792,8 @@ with pkgs;
     accounts-qt = callPackage ../development/libraries/accounts-qt { };
 
     fcitx-qt5 = callPackage ../tools/inputmethods/fcitx/fcitx-qt5.nix { };
+
+    qgpgme = callPackage ../development/libraries/gpgme { };
 
     grantlee = callPackage ../development/libraries/grantlee/5.x.nix { };
 
@@ -11542,9 +11563,7 @@ with pkgs;
 
   cifs-utils = callPackage ../os-specific/linux/cifs-utils { };
 
-  cockroachdb = callPackage ../servers/sql/cockroachdb {
-    gcc = gcc6; # needs gcc 6.0 and above
-  };
+  cockroachdb = callPackage ../servers/sql/cockroachdb { };
 
   conky = callPackage ../os-specific/linux/conky ({
     lua = lua5_1; # conky can use 5.2, but toluapp can not
@@ -11840,6 +11859,17 @@ with pkgs;
 
   klibcShrunk = lowPrio (callPackage ../os-specific/linux/klibc/shrunk.nix { });
 
+  linux_hardened_copperhead = callPackage ../os-specific/linux/kernel/linux-hardened-copperhead.nix {
+    kernelPatches = with kernelPatches; [
+      kernelPatches.bridge_stp_helper
+      kernelPatches.p9_fixes
+    ];
+    extraConfig = import ../os-specific/linux/kernel/hardened-config.nix {
+      inherit stdenv;
+      inherit (linux) version;
+    };
+  };
+
   linux_mptcp = callPackage ../os-specific/linux/kernel/linux-mptcp.nix {
     kernelPatches =
       [ kernelPatches.bridge_stp_helper
@@ -12008,6 +12038,8 @@ with pkgs;
     nvidia_x11_beta      = nvidiaPackages.beta;
     nvidia_x11           = nvidiaPackages.stable;
 
+    ply = callPackage ../os-specific/linux/ply { };
+
     rtl8723bs = callPackage ../os-specific/linux/rtl8723bs { };
 
     rtl8812au = callPackage ../os-specific/linux/rtl8812au { };
@@ -12089,6 +12121,7 @@ with pkgs;
   linux_latest = linuxPackages_latest.kernel;
 
   # Build the kernel modules for the some of the kernels.
+  linuxPackages_hardened_copperhead = linuxPackagesFor pkgs.linux_hardened_copperhead;
   linuxPackages_mptcp = linuxPackagesFor pkgs.linux_mptcp;
   linuxPackages_rpi = linuxPackagesFor pkgs.linux_rpi;
   linuxPackages_3_10 = recurseIntoAttrs (linuxPackagesFor pkgs.linux_3_10);
@@ -12556,17 +12589,12 @@ with pkgs;
     };
 
     mingw_w64 = callPackage ../os-specific/windows/mingw-w64 {
-      gccCross = gccCrossStageStatic;
-      binutils = binutils;
+      stdenv = crossLibcStdenv;
     };
 
-    mingw_w64_headers = callPackage ../os-specific/windows/mingw-w64 {
-      onlyHeaders = true;
-    };
+    mingw_w64_headers = callPackage ../os-specific/windows/mingw-w64/headers.nix { };
 
-    mingw_w64_pthreads = callPackage ../os-specific/windows/mingw-w64 {
-      onlyPthreads = true;
-    };
+    mingw_w64_pthreads = callPackage ../os-specific/windows/mingw-w64/pthreads.nix { };
 
     pthreads = callPackage ../os-specific/windows/pthread-w32 {
       mingw_headers = mingw_headers3;
@@ -12913,6 +12941,8 @@ with pkgs;
 
   poppler_data = callPackage ../data/misc/poppler-data { };
 
+  qgo = libsForQt5.callPackage ../games/qgo { };
+
   quattrocento = callPackage ../data/fonts/quattrocento {};
 
   quattrocento-sans = callPackage ../data/fonts/quattrocento-sans {};
@@ -13120,6 +13150,8 @@ with pkgs;
     inherit (gnome2) libgnomecanvas libgnomecanvasmm;
     inherit (vamp) vampSDK;
   };
+
+  inherit (python34Packages) arelle;
 
   ario = callPackage ../applications/audio/ario { };
 
@@ -14614,17 +14646,17 @@ with pkgs;
       mkApplications = import ../applications/kde;
       attrs = {
         inherit stdenv lib libsForQt5 fetchurl recurseIntoAttrs;
-        inherit kdeDerivation plasma5;
+        inherit plasma5;
         inherit attica phonon;
       };
     in
       recurseIntoAttrs (makeOverridable mkApplications attrs);
 
   inherit (kdeApplications)
-    akonadi ark dolphin ffmpegthumbs filelight gwenview kate
-    kdenlive kcalc kcolorchooser kcontacts kgpg khelpcenter kig
-    kolourpaint konsole krfb marble
-    okteta okular spectacle;
+    akonadi ark dolphin ffmpegthumbs filelight gwenview kate kdenlive
+    kcachegrind kcalc kcolorchooser kcontacts kdf kgpg khelpcenter kig kmix
+    kolourpaint kompare konsole krfb kwalletmanager marble okteta okular
+    spectacle;
 
   kdeconnect = libsForQt5.callPackage ../applications/misc/kdeconnect { };
 
@@ -14680,7 +14712,6 @@ with pkgs;
   konversation = libsForQt5.callPackage ../applications/networking/irc/konversation { };
 
   krita = libsForQt5.callPackage ../applications/graphics/krita {
-    vc = vc_0_7;
     openjpeg = openjpeg_1;
   };
 
@@ -14962,6 +14993,8 @@ with pkgs;
 
   mopidy-gmusic = callPackage ../applications/audio/mopidy-gmusic { };
 
+  mopidy-local-images = callPackage ../applications/audio/mopidy-local-images { };
+
   mopidy-spotify = callPackage ../applications/audio/mopidy-spotify { };
 
   mopidy-moped = callPackage ../applications/audio/mopidy-moped { };
@@ -15031,10 +15064,6 @@ with pkgs;
     lua = lua5_1;
     lua5_sockets = lua5_1_sockets;
     youtube-dl = pythonPackages.youtube-dl;
-    bs2bSupport = config.mpv.bs2bSupport or true;
-    youtubeSupport = config.mpv.youtubeSupport or true;
-    cacaSupport = config.mpv.cacaSupport or true;
-    vaapiSupport = config.mpv.vaapiSupport or false;
     libva = libva-full;
   };
 
@@ -15084,7 +15113,7 @@ with pkgs;
     if stdenv.isDarwin then
       callPackage ../applications/audio/musescore/darwin.nix { }
     else
-      libsForQt56.callPackage ../applications/audio/musescore { };
+      libsForQt5.callPackage ../applications/audio/musescore { };
 
   mutt = callPackage ../applications/networking/mailreaders/mutt { };
   mutt-with-sidebar = callPackage ../applications/networking/mailreaders/mutt {
@@ -15535,6 +15564,8 @@ with pkgs;
   # 0.5.7 segfaults when opening the main panel with qt 5.7 and fails to compile with qt 5.8
   qsyncthingtray = libsForQt56.callPackage ../applications/misc/qsyncthingtray { };
 
+  qstopmotion = callPackage ../applications/video/qstopmotion { };
+
   qsynth = callPackage ../applications/audio/qsynth { };
 
   qtbitcointrader = callPackage ../applications/misc/qtbitcointrader { };
@@ -15657,7 +15688,7 @@ with pkgs;
 
   rofi-menugen = callPackage ../applications/misc/rofi-menugen { };
 
-  rstudio = callPackage ../applications/editors/rstudio { };
+  rstudio = libsForQt5.callPackage ../applications/editors/rstudio { };
 
   rsync = callPackage ../applications/networking/sync/rsync {
     enableACLs = !(stdenv.isDarwin || stdenv.isSunOS || stdenv.isFreeBSD);
@@ -15865,16 +15896,7 @@ with pkgs;
 
   printrun = callPackage ../applications/misc/printrun { };
 
-  sddm = libsForQt5.callPackage ../applications/display-managers/sddm {
-    themes = [];  # extra themes, etc.
-  };
-
-  sddmPlasma5 = sddm.override {
-    themes = [
-      plasma5.plasma-workspace
-      pkgs.breeze-icons
-    ];
-  };
+  sddm = libsForQt5.callPackage ../applications/display-managers/sddm { };
 
   skrooge = libsForQt5.callPackage ../applications/office/skrooge {};
 
@@ -16028,6 +16050,7 @@ with pkgs;
 
   tdesktop = qt5.callPackage ../applications/networking/instant-messengers/telegram/tdesktop {
     inherit (pythonPackages) gyp;
+    gcc = gcc6;
   };
 
   telegram-cli = callPackage ../applications/networking/instant-messengers/telegram/telegram-cli { };
@@ -17562,7 +17585,7 @@ with pkgs;
     let
       mkPlasma5 = import ../desktops/plasma-5;
       attrs = {
-        inherit libsForQt5 kdeDerivation lib fetchurl;
+        inherit libsForQt5 lib fetchurl;
         inherit (gnome3) gconf;
       };
     in
@@ -18378,7 +18401,6 @@ with pkgs;
     libopus = libopus.override { withCustomModes = true; };
   };
   libjack2 = jack2Full.override { prefix = "lib"; };
-  libjack2Unstable = callPackage ../misc/jackaudio/unstable.nix { };
 
   keynav = callPackage ../tools/X11/keynav { };
 

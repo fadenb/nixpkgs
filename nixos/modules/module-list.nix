@@ -252,6 +252,7 @@
   ./services/mail/exim.nix
   ./services/mail/freepops.nix
   ./services/mail/mail.nix
+  ./services/mail/mailhog.nix
   ./services/mail/mlmmj.nix
   ./services/mail/offlineimap.nix
   ./services/mail/opendkim.nix
@@ -587,6 +588,7 @@
   ./services/web-servers/lighttpd/default.nix
   ./services/web-servers/lighttpd/gitweb.nix
   ./services/web-servers/lighttpd/inginious.nix
+  ./services/web-servers/minio.nix
   ./services/web-servers/nginx/default.nix
   ./services/web-servers/phpfpm/default.nix
   ./services/web-servers/shellinabox.nix
