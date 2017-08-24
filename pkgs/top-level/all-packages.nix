@@ -16827,6 +16827,8 @@ with pkgs;
     pythonPackages = python3Packages;
   };
 
+  mwikiircbot = callPackage ../applications/networking/mwikiircbot { };
+
   neomutt = callPackage ../applications/networking/mailreaders/neomutt { };
 
   natron = callPackage ../applications/video/natron { };
