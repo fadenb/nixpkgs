@@ -20090,6 +20090,28 @@ EOF
     ];
   };
 
+  ircbotframework = buildPythonPackage rec {
+    name = "ircbotframework-${version}";
+    version = "2016-06-06";
+
+    src = pkgs.fetchFromGitHub {
+      owner = "fenhl";
+      repo = "Python-IRC-Bot-Framework";
+      rev = "5e420ab7fb7a0e17106ebca55592f2f2bdc13d4b";
+      sha256 = "0r8r8f6plss13glvb57d31yxvifmbnw99dbf5hf6pdw6wff1kgqm";
+    };
+
+    disabled = (!isPy3k);
+
+    doCheck = false;
+    phases = [ "unpackPhase" "installPhase" ];
+
+    installPhase = ''
+      mkdir -p "$out/lib/${python.libPrefix}/site-packages"
+      cp ircbotframe.py "$out/lib/${python.libPrefix}/site-packages/"
+    '';
+  };
+
   jaraco_logging = buildPythonPackage rec {
     name = "jaraco.logging-${version}";
     version = "1.5";
