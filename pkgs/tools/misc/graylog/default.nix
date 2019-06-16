@@ -6,7 +6,7 @@ stdenv.mkDerivation rec {
 
   src = fetchurl {
     url = "https://packages.graylog2.org/releases/graylog/graylog-${version}.tgz";
-    sha256 = "1yc3rirbdydirs1kph60acz06ciqnjbf115p3q4vhh15l84lg3sg";
+    sha256 = "0wynnb56plch61pzjl46jx5q94c5hclzyrr8567fc1jhnqycfngs";
   };
 
   dontBuild = true;

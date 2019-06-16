@@ -3764,6 +3764,7 @@ in
   graylogPlugins = recurseIntoAttrs (
     callPackage ../tools/misc/graylog/plugins.nix { }
   );
+  graylogEnterprise = callPackage ../tools/misc/graylog/enterprise.nix { };
 
   graphviz = callPackage ../tools/graphics/graphviz {
     inherit (darwin.apple_sdk.frameworks) ApplicationServices;
