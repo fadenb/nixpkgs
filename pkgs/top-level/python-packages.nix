@@ -1923,6 +1923,8 @@ in {
 
   exifread = callPackage ../development/python-modules/exifread { };
 
+  expiringdict = callPackage ../development/python-modules/expiringdict { };
+
   extension-helpers = callPackage ../development/python-modules/extension-helpers { };
 
   extras = callPackage ../development/python-modules/extras { };
