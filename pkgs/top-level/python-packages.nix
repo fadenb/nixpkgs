@@ -6217,6 +6217,8 @@ in {
 
   Rtree = callPackage ../development/python-modules/Rtree { inherit (pkgs) libspatialindex; };
 
+  rstcheck = callPackage ../development/python-modules/rstcheck { };
+
   rtslib = callPackage ../development/python-modules/rtslib { };
 
   ruamel_base = callPackage ../development/python-modules/ruamel_base { };
