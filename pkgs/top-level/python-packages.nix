@@ -3539,6 +3539,8 @@ in {
 
   mailman-web = callPackage ../servers/mail/mailman/web.nix { };
 
+  mailsuite = callPackage ../development/python-modules/mailsuite { };
+
   rtmixer = callPackage ../development/python-modules/rtmixer { };
 
   mail-parser = callPackage ../development/python-modules/mail-parser { };
