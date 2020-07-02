@@ -1231,6 +1231,8 @@ in {
 
   colorama = callPackage ../development/python-modules/colorama { };
 
+  collective_checkdocs = callPackage ../development/python-modules/collective_checkdocs { };
+
   colorcet = callPackage ../development/python-modules/colorcet { };
 
   colorclass = callPackage ../development/python-modules/colorclass { };
