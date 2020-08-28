@@ -484,6 +484,7 @@
   ./services/misc/osrm.nix
   ./services/misc/packagekit.nix
   ./services/misc/paperless.nix
+  ./services/misc/parsedmarc.nix
   ./services/misc/parsoid.nix
   ./services/misc/plex.nix
   ./services/misc/tautulli.nix
