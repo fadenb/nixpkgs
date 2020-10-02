@@ -18,6 +18,7 @@ mkDerivation rec {
   cmakeFlags = [
     "-DBUILD_QT_VERSION=5"
     "-DQTERMWIDGET_INCLUDE_DIRS=${qtermwidget}/include/qtermwidget5"
+    "-DWITH_VNC_SUPPORT=0"
   ];
 
   buildInputs = [
